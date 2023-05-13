@@ -4,7 +4,7 @@ import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
 public class UserMapper {
-    public static UserDto UserToDto(User user) {
+    public static UserDto userToDto(User user) {
         return UserDto.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -12,7 +12,7 @@ public class UserMapper {
                 .build();
     }
 
-    public static User UserFromDto(UserDto userDto) {
+    public static User userFromDto(UserDto userDto) {
         //На данный момент нет отличающихся полей.
         return User.builder()
                 .id(userDto.getId())

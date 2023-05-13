@@ -17,23 +17,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getUser(long userId) {
-        return UserMapper.UserToDto(userStorage.getUser(userId));
+        return UserMapper.userToDto(userStorage.getUser(userId));
     }
 
     @Override
     public List<UserDto> findAll() {
-        return userStorage.findAll().stream().map(UserMapper::UserToDto).collect(Collectors.toList());
+        return userStorage.findAll().stream().map(UserMapper::userToDto).collect(Collectors.toList());
     }
 
     @Override
     public UserDto add(UserDto userDto) {
-        return UserMapper.UserToDto(userStorage.add(UserMapper.UserFromDto(userDto)));
+        return UserMapper.userToDto(userStorage.add(UserMapper.userFromDto(userDto)));
     }
 
     @Override
     public UserDto update(UserDto userDto, long userId) {
         userDto.setId(userId);
-        return UserMapper.UserToDto(userStorage.update(UserMapper.UserFromDto(userDto)));
+        return UserMapper.userToDto(userStorage.update(UserMapper.userFromDto(userDto)));
     }
 
     @Override

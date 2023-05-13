@@ -23,7 +23,7 @@ public class ItemServiceImpl implements ItemService {
         if (userStorage.getUser(userId) == null) {
             throw new UserNotExistException("Пользователя с id " + userId + " не существует.");
         }
-        return ItemMapper.ItemToDto(itemStorage.addItem(ItemMapper.ItemFromDto(itemDto, userId)));
+        return ItemMapper.itemToDto(itemStorage.addItem(ItemMapper.itemFromDto(itemDto, userId)));
     }
 
     @Override
@@ -32,23 +32,23 @@ public class ItemServiceImpl implements ItemService {
             throw new UserNotExistException("Пользователя с id " + userId + " не существует.");
         }
         itemDto.setId(itemId);
-        return ItemMapper.ItemToDto(itemStorage.updateItem(ItemMapper.ItemFromDto(itemDto, userId)));
+        return ItemMapper.itemToDto(itemStorage.updateItem(ItemMapper.itemFromDto(itemDto, userId)));
     }
 
     @Override
     public ItemDto getItem(long itemId) {
-        return ItemMapper.ItemToDto(itemStorage.getItem(itemId));
+        return ItemMapper.itemToDto(itemStorage.getItem(itemId));
     }
 
     @Override
     public List<ItemDto> getUserItems(long userId) {
         return itemStorage.getUserItems(userId).stream()
-                .map(ItemMapper::ItemToDto).collect(Collectors.toList());
+                .map(ItemMapper::itemToDto).collect(Collectors.toList());
     }
 
     @Override
     public List<ItemDto> searchItems(String text) {
         return itemStorage.searchItems(text).stream()
-                .map(ItemMapper::ItemToDto).collect(Collectors.toList());
+                .map(ItemMapper::itemToDto).collect(Collectors.toList());
     }
 }
