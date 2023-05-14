@@ -18,5 +18,6 @@ public class Item {
     private String name;
     @NotNull
     private Boolean available;
+    @NotNull
     private Long owner;
 }

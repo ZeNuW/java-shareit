@@ -45,7 +45,6 @@ public class UserInMemoryStorage implements UserStorage {
 
     @Override
     public User update(User user) {
-        // не очень хорошие решения по проверке, но т.к они временные и всё переедет в БД подумал, что так будет проще
         if (!users.containsKey(user.getId())) {
             throw new UserNotExistException("Пользователь с id: " + user.getId() + " не существует");
         }

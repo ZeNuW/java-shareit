@@ -20,6 +20,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto addItem(long userId, ItemDto itemDto) {
+        //нет возможности проверить наличие пользователя в itemStorage, без связи с userStorage, поэтому проверка пока в сервисе
         if (userStorage.getUser(userId) == null) {
             throw new UserNotExistException("Пользователя с id " + userId + " не существует.");
         }
