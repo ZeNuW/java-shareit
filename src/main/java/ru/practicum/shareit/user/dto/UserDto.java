@@ -1,15 +1,15 @@
 package ru.practicum.shareit.user.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 
-@Data
 @Builder
 @AllArgsConstructor
+@Getter
+@Setter
+@ToString
 public class UserDto {
     private Long id;
     @Email(message = "Передан невалидный email")
