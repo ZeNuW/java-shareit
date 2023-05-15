@@ -2,7 +2,7 @@ package ru.practicum.shareit.item.storage;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import ru.practicum.shareit.exception.ObjectForbiddenError;
+import ru.practicum.shareit.exception.ObjectForbiddenException;
 import ru.practicum.shareit.exception.ObjectNotExistException;
 import ru.practicum.shareit.item.model.Item;
 
@@ -34,7 +34,7 @@ public class ItemInMemoryStorage implements ItemStorage {
             throw new ObjectNotExistException("Предмет с id: " + item.getId() + " не был найден");
         }
         if (!item.getOwner().equals(itemToUpdate.getOwner())) {
-            throw new ObjectForbiddenError("Попытка изменить владельца предмета");
+            throw new ObjectForbiddenException("Попытка изменить владельца предмета");
         }
         if (item.getDescription() != null) {
             itemToUpdate.setDescription(item.getDescription());
