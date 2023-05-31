@@ -38,7 +38,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> getUserBookings(@Param("state") String state, @Param("userId") Long userId,
                                   @Param("currentTimestamp") LocalDateTime currentTimestamp);
 
-
     @Query(value = "SELECT b FROM Booking b WHERE " +
             "    ((:state = 'CURRENT' AND b.endOfBooking >= :currentTimestamp " +
             "AND b.startOfBooking <= :currentTimestamp) OR\n" +
