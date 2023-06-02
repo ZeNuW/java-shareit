@@ -33,4 +33,11 @@ public class BookingDto {
         }
         item.setId(itemId);
     }
+
+    public void setBooker(Long userId) {
+        if (booker == null) {
+            booker = new UserShort();
+        }
+        booker.setId(userId);
+    }
 }

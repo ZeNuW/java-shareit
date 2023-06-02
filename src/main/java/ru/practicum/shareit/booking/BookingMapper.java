@@ -11,13 +11,13 @@ import ru.practicum.shareit.user.dto.UserShort;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BookingMapper {
 
-    public static BookingDto bookingToDto(Booking booking, ItemShort item) {
+    public static BookingDto bookingToDto(Booking booking) {
         return BookingDto.builder()
                 .id(booking.getId())
                 .startOfBooking(booking.getStartOfBooking())
                 .endOfBooking(booking.getEndOfBooking())
                 .status(booking.getStatus())
-                .item(item)
+                .item(new ItemShort(booking.getItem().getId(), booking.getItem().getName()))
                 .booker(new UserShort(booking.getBooker()))
                 .build();
     }

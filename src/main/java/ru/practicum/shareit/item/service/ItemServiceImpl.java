@@ -22,9 +22,7 @@ import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,15 +54,19 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public ItemDto getItem(long itemId, long userId) {
+        LocalDateTime now = LocalDateTime.now();
         Item item = itemRepository.findById(itemId).orElseThrow(
                 () -> new ObjectNotExistException("Предмет с id: " + itemId + " не существует"));
-        LocalDateTime now = LocalDateTime.now();
         ItemDto itemDto = ItemMapper.itemToDto(item);
         if (item.getOwner().getId() == userId) {
-            BookingShort lastBooking = bookingRepository.getLastItemBooking(itemId, now);
-            BookingShort nextBooking = bookingRepository.getNextItemBooking(itemId, now);
-            itemDto.setNextBooking(nextBooking);
-            itemDto.setLastBooking(lastBooking);
+            List<BookingShort> bookings = bookingRepository.getNextAndLastItemBooking(itemId, now);
+            for (BookingShort booking : bookings) {
+                if (booking.getStartOfBooking().isBefore(now)) {
+                    itemDto.setLastBooking(booking);
+                } else {
+                    itemDto.setNextBooking(booking);
+                }
+            }
         }
         return itemDto;
     }
@@ -72,15 +74,24 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public List<ItemDto> getUserItems(long userId) {
+        /*
+        не получилось у меня избежать цикличных запросов в БД, все попытки сделать запрос всех аренд по времени
+         в 1 sql запросе были неудачными
+         */
         LocalDateTime now = LocalDateTime.now();
         return itemRepository.findAllByOwner_Id(userId).stream()
                 .sorted(Comparator.comparingLong(Item::getId))
                 .map(ItemMapper::itemToDto)
                 .peek(itemDto -> {
-                    BookingShort lastBooking = bookingRepository.getLastItemBooking(itemDto.getId(), now);
-                    BookingShort nextBooking = bookingRepository.getNextItemBooking(itemDto.getId(), now);
-                    itemDto.setNextBooking(nextBooking);
-                    itemDto.setLastBooking(lastBooking);
+                    List<BookingShort> bookings =
+                            bookingRepository.getNextAndLastItemBooking(itemDto.getId(), now);
+                    for (BookingShort booking : bookings) {
+                        if (booking.getStartOfBooking().isBefore(now)) {
+                            itemDto.setLastBooking(booking);
+                        } else {
+                            itemDto.setNextBooking(booking);
+                        }
+                    }
                 })
                 .collect(Collectors.toList());
     }
@@ -97,14 +108,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
-    public CommentDto addComment(Long userId, Long itemId, Comment comment) {
-        if (comment.getText().isBlank()) {
-            throw new ObjectValidationException("Текст комментария пустой.");
-        }
-        List<Booking> bookings = bookingRepository
-                .findAllByBookerAndItemIdAndStatusAndEndOfBookingIsBefore(
-                        userId, itemId, BookingStatus.APPROVED, LocalDateTime.now()
-                );
+    public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
+        List<Booking> bookings = bookingRepository.findAllByBookerAndItemIdAndStatusAndEndOfBookingIsBefore(
+                userId, itemId, BookingStatus.APPROVED, LocalDateTime.now());
         if (bookings.isEmpty()) {
             throw new ObjectValidationException("Вы не можете оставить комментарий.");
         }
@@ -112,8 +118,7 @@ public class ItemServiceImpl implements ItemService {
                 () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
         Item item = itemRepository.findById(itemId).orElseThrow(
                 () -> new ObjectNotExistException("Предмет с id: " + itemId + " не существует"));
-        comment.setCommentator(user);
-        comment.setItem(item);
+        Comment comment = CommentMapper.commentFromDto(commentDto, user, item);
         comment.setCreated(LocalDateTime.now());
         return CommentMapper.commentToDto(commentRepository.save(comment));
     }

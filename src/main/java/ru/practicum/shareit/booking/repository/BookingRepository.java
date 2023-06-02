@@ -51,21 +51,20 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> getUserItemBookings(@Param("state") String state, @Param("userId") Long userId,
                                       @Param("currentTimestamp") LocalDateTime currentTimestamp);
 
-    @Query(value = "SELECT b.booking_id as id, b.booker_id as booker FROM bookings b " +
+    @Query(value = "(SELECT b.booking_id as id, b.booker_id as booker, b.start_time as startofbooking, " +
+            "b.end_time as endofbooking, b.item_id as item FROM bookings b " +
             "WHERE b.item_id IN (SELECT item_id FROM items i WHERE i.item_id = :itemId) " +
             "AND :currentTimestamp >= b.start_time AND b.booking_status = 'APPROVED' " +
-            "ORDER BY b.end_time DESC LIMIT 1", nativeQuery = true)
-    @Transactional(readOnly = true)
-    BookingShort getLastItemBooking(@Param("itemId") Long itemId,
-                                    @Param("currentTimestamp") LocalDateTime currentTimestamp);
-
-    @Query(value = "SELECT b.booking_id as id, b.booker_id as booker FROM bookings b " +
+            "ORDER BY b.end_time DESC LIMIT 1)" +
+            "UNION ALL " +
+            "(SELECT b.booking_id as id, b.booker_id as booker, b.start_time as startofbooking, " +
+            "b.end_time as endofbooking, b.item_id as item FROM bookings b " +
             "WHERE b.item_id IN (SELECT item_id FROM items i WHERE i.item_id = :itemId) " +
             "AND :currentTimestamp <= b.start_time AND b.booking_status = 'APPROVED' " +
-            "ORDER BY b.start_time LIMIT 1", nativeQuery = true)
+            "ORDER BY b.start_time LIMIT 1)", nativeQuery = true)
     @Transactional(readOnly = true)
-    BookingShort getNextItemBooking(@Param("itemId") Long itemId,
-                                    @Param("currentTimestamp") LocalDateTime currentTimestamp);
+    List<BookingShort> getNextAndLastItemBooking(@Param("itemId") Long itemId,
+                                                 @Param("currentTimestamp") LocalDateTime currentTimestamp);
 
     @Transactional(readOnly = true)
     List<Booking> findAllByBookerAndItemIdAndStatusAndEndOfBookingIsBefore(

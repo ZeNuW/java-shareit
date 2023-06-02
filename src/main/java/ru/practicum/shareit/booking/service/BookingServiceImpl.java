@@ -12,10 +12,8 @@ import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.ObjectNotExistException;
 import ru.practicum.shareit.exception.ObjectValidationException;
-import ru.practicum.shareit.item.dto.ItemShort;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.user.dto.UserShort;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import javax.persistence.EntityManager;
@@ -35,10 +33,9 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public BookingDto createBooking(BookingDto bookingDto, Long userId) {
-        userRepository.findById(userId).orElseThrow(
-                () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
+        checkUserExist(userId);
         bookingDto.setStatus(BookingStatus.WAITING);
-        bookingDto.setBooker(new UserShort(userId));
+        bookingDto.setBooker(userId);
         Item item = itemRepository.findById(bookingDto.getItem().getId()).orElseThrow(() ->
                 new ObjectNotExistException("Предмет с id: " + bookingDto.getItem().getId() + " не найден."));
         if (item.getOwner().getId().equals(userId)) {
@@ -47,20 +44,23 @@ public class BookingServiceImpl implements BookingService {
         if (!item.getAvailable()) {
             throw new ObjectValidationException("Предмет " + item.getName() + " недоступен для брони.");
         }
-        if (bookingDto.getEndOfBooking().isBefore(LocalDateTime.now())) {
+        LocalDateTime nowTime = LocalDateTime.now();
+        LocalDateTime startOfBooking = bookingDto.getStartOfBooking();
+        LocalDateTime endOfBooking = bookingDto.getEndOfBooking();
+        if (endOfBooking.isBefore(nowTime)) {
             throw new ObjectValidationException("Время начала брони установлено в прошлом.");
         }
-        if (bookingDto.getEndOfBooking().isBefore(bookingDto.getStartOfBooking())) {
+        if (endOfBooking.isBefore(startOfBooking)) {
             throw new ObjectValidationException("Время окончания брони установлено раньше начала брони.");
         }
-        if (bookingDto.getStartOfBooking().equals(bookingDto.getEndOfBooking())) {
+        if (startOfBooking.isEqual(endOfBooking)) {
             throw new ObjectValidationException("Время начала и конца брони установлено в одно время.");
         }
-        if (bookingDto.getStartOfBooking().isBefore(LocalDateTime.now())) {
+        if (startOfBooking.isBefore(nowTime)) {
             throw new ObjectValidationException("Время начала брони установлено в прошлом.");
         }
-        return BookingMapper.bookingToDto(bookingRepository.save(
-                BookingMapper.bookingFromDto(bookingDto, item)), new ItemShort(item.getId(), item.getName()));
+        return BookingMapper.bookingToDto(
+                bookingRepository.save(BookingMapper.bookingFromDto(bookingDto, item)));
     }
 
     @Override
@@ -77,8 +77,7 @@ public class BookingServiceImpl implements BookingService {
         }
         bookingRepository.considerBooking(status.toString(), bookingId, userId);
         entityManager.refresh(booking);
-        return BookingMapper.bookingToDto(booking, new ItemShort(
-                booking.getItem().getId(), booking.getItem().getName()));
+        return BookingMapper.bookingToDto(booking);
     }
 
     @Override
@@ -89,39 +88,37 @@ public class BookingServiceImpl implements BookingService {
         if (!(booking.getBooker().equals(userId) || booking.getItem().getOwner().getId().equals(userId))) {
             throw new ObjectNotExistException(userId + " не является владельцем предмета или создателем брони");
         }
-        return BookingMapper.bookingToDto(bookingRepository.getBooking(bookingId, userId),
-                new ItemShort(booking.getItem().getId(), booking.getItem().getName()));
+        return BookingMapper.bookingToDto(bookingRepository.getBooking(bookingId, userId));
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public List<BookingDto> getUserBookings(String state, Long userId) {
+        checkUserExist(userId);
         try {
             BookingState.valueOf(state);
         } catch (IllegalArgumentException e) {
             throw new ObjectValidationException("Unknown state: UNSUPPORTED_STATUS");
         }
-        userRepository.findById(userId).orElseThrow(
-                () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
-        return bookingRepository.getUserBookings(state, userId, LocalDateTime.now()).stream()
-                .map(b -> BookingMapper.bookingToDto(b,
-                        new ItemShort(b.getItem().getId(), b.getItem().getName())))
-                .collect(Collectors.toList());
+        return bookingRepository.getUserBookings(state, userId, LocalDateTime.now())
+                .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public List<BookingDto> getUserItemBookings(String state, Long userId) {
+        checkUserExist(userId);
         try {
             BookingState.valueOf(state);
         } catch (IllegalArgumentException e) {
             throw new ObjectValidationException("Unknown state: UNSUPPORTED_STATUS");
         }
+        return bookingRepository.getUserItemBookings(state, userId, LocalDateTime.now())
+                .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
+    }
+
+    private void checkUserExist(Long userId) {
         userRepository.findById(userId).orElseThrow(
                 () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
-        return bookingRepository.getUserItemBookings(state, userId, LocalDateTime.now()).stream()
-                .map(b -> BookingMapper.bookingToDto(b,
-                        new ItemShort(b.getItem().getId(), b.getItem().getName())))
-                .collect(Collectors.toList());
     }
 }
