@@ -2,7 +2,6 @@ package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingShort;
 import ru.practicum.shareit.booking.model.Booking;
@@ -10,6 +9,7 @@ import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.ObjectNotExistException;
 import ru.practicum.shareit.exception.ObjectValidationException;
+import ru.practicum.shareit.item.dto.ItemWithBookings;
 import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.dto.CommentDto;
@@ -35,7 +35,7 @@ public class ItemServiceImpl implements ItemService {
     private final CommentRepository commentRepository;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional
     public ItemDto addItem(long userId, ItemDto itemDto) {
         User owner = userRepository.findById(userId).orElseThrow(
                 () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
@@ -43,7 +43,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional
     public ItemDto updateItem(long userId, ItemDto itemDto, long itemId) {
         userRepository.findById(userId).orElseThrow(
                 () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
@@ -52,46 +52,46 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
-    public ItemDto getItem(long itemId, long userId) {
+    @Transactional(readOnly = true)
+    public ItemWithBookings getItem(long itemId, long userId) {
         LocalDateTime now = LocalDateTime.now();
         Item item = itemRepository.findById(itemId).orElseThrow(
                 () -> new ObjectNotExistException("Предмет с id: " + itemId + " не существует"));
-        ItemDto itemDto = ItemMapper.itemToDto(item);
+        ItemWithBookings itemWithBookings = ItemMapper.itemToItemWithBookings(item);
         if (item.getOwner().getId() == userId) {
             List<BookingShort> bookings =
                     bookingRepository.getNextAndLastItemBooking(List.of(itemId), now);
             for (BookingShort booking : bookings) {
                 if (booking.getStartOfBooking().isBefore(now)) {
-                    itemDto.setLastBooking(booking);
+                    itemWithBookings.setLastBooking(booking);
                 } else {
-                    itemDto.setNextBooking(booking);
+                    itemWithBookings.setNextBooking(booking);
                 }
             }
         }
-        return itemDto;
+        return itemWithBookings;
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
-    public List<ItemDto> getUserItems(long userId) {
+    @Transactional(readOnly = true)
+    public List<ItemWithBookings> getUserItems(long userId) {
         LocalDateTime now = LocalDateTime.now();
-        Map<Long, ItemDto> itemsDto = itemRepository.findAllByOwner_Id(userId).stream()
-                .collect(Collectors.toMap(Item::getId, ItemMapper::itemToDto));
-        List<Long> itemIds = new ArrayList<>(itemsDto.keySet());
+        Map<Long, ItemWithBookings> itemsWithBookings = itemRepository.findAllByOwner_Id(userId).stream()
+                .collect(Collectors.toMap(Item::getId, ItemMapper::itemToItemWithBookings));
+        List<Long> itemIds = new ArrayList<>(itemsWithBookings.keySet());
         List<BookingShort> bookings = bookingRepository.getNextAndLastItemBooking(itemIds, now);
         for (BookingShort bookingShort : bookings) {
             if (bookingShort.getStartOfBooking().isBefore(now)) {
-                itemsDto.get(bookingShort.getItem()).setLastBooking(bookingShort);
+                itemsWithBookings.get(bookingShort.getItem()).setLastBooking(bookingShort);
             } else {
-                itemsDto.get(bookingShort.getItem()).setNextBooking(bookingShort);
+                itemsWithBookings.get(bookingShort.getItem()).setNextBooking(bookingShort);
             }
         }
-        return new ArrayList<>(itemsDto.values());
+        return new ArrayList<>(itemsWithBookings.values());
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(readOnly = true)
     public List<ItemDto> searchItems(String text) {
         if (text.isBlank()) {
             return new ArrayList<>();
@@ -101,7 +101,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional
     public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
         List<Booking> bookings = bookingRepository.findAllByBookerAndItemIdAndStatusAndEndOfBookingIsBefore(
                 userId, itemId, BookingStatus.APPROVED, LocalDateTime.now());

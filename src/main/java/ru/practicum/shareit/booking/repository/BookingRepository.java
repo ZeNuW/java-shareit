@@ -1,10 +1,8 @@
 package ru.practicum.shareit.booking.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingShort;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingStatus;
@@ -14,16 +12,14 @@ import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    @Query(value = "UPDATE bookings b SET booking_status = :status " +
-            "WHERE b.booking_id = :bookingId AND b.item_id IN " +
-            "(SELECT item_id FROM items WHERE owner_id = :ownerId)", nativeQuery = true)
-    @Transactional
-    @Modifying
-    void considerBooking(@Param("status") String status, @Param("bookingId") Long bookingId,
-                         @Param("ownerId") Long ownerId);
+//    @Query(value = "UPDATE bookings b SET booking_status = :status " +
+//            "WHERE b.booking_id = :bookingId AND b.item_id IN " +
+//            "(SELECT item_id FROM items WHERE owner_id = :ownerId)", nativeQuery = true)
+//    @Modifying
+//    void considerBooking(@Param("status") String status, @Param("bookingId") Long bookingId,
+//                         @Param("ownerId") Long ownerId);
 
     @Query("SELECT b FROM Booking b WHERE b.id = :bookingId AND (b.item.owner.id = :userId OR b.booker = :userId)")
-    @Transactional(readOnly = true)
     Booking getBooking(@Param("bookingId") Long bookingId, @Param("userId") Long userId);
 
     @Query(value = "SELECT * FROM bookings WHERE " +
@@ -34,7 +30,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "    (:state = 'WAITING' AND booking_status = 'WAITING') OR\n" +
             "    (:state = 'REJECTED' AND booking_status = 'REJECTED') OR\n" +
             "    :state = 'ALL') AND booker_id = :userId ORDER BY start_time DESC", nativeQuery = true)
-    @Transactional(readOnly = true)
     List<Booking> getUserBookings(@Param("state") String state, @Param("userId") Long userId,
                                   @Param("currentTimestamp") LocalDateTime currentTimestamp);
 
@@ -47,7 +42,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "    (:state = 'WAITING' AND b.status = 'WAITING') OR\n" +
             "    (:state = 'REJECTED' AND b.status = 'REJECTED') OR\n" +
             "    :state = 'ALL') AND b.item.owner.id = :userId ORDER BY b.startOfBooking DESC")
-    @Transactional(readOnly = true)
     List<Booking> getUserItemBookings(@Param("state") String state, @Param("userId") Long userId,
                                       @Param("currentTimestamp") LocalDateTime currentTimestamp);
 
@@ -62,11 +56,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "(b.start_time = (SELECT MIN(start_time) FROM bookings WHERE item_id IN (:itemId) " +
             "AND :currentTimestamp <= start_time AND booking_status = 'APPROVED' AND b.item_id = item_id)))",
             nativeQuery = true)
-    @Transactional(readOnly = true)
     List<BookingShort> getNextAndLastItemBooking(@Param("itemId") List<Long> itemId,
                                                  @Param("currentTimestamp") LocalDateTime currentTimestamp);
 
-    @Transactional(readOnly = true)
     List<Booking> findAllByBookerAndItemIdAndStatusAndEndOfBookingIsBefore(
             Long userId, Long itemId, BookingStatus bookingStatus, LocalDateTime localDateTime);
 }

@@ -6,7 +6,9 @@ import ru.practicum.shareit.user.model.User;
 import javax.persistence.*;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
+@ToString
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

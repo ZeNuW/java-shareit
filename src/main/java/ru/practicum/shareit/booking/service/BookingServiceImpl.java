@@ -2,7 +2,6 @@ package ru.practicum.shareit.booking.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.BookingMapper;
 import ru.practicum.shareit.booking.dto.BookingDto;
@@ -16,10 +15,10 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.repository.UserRepository;
 
-import javax.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -28,10 +27,9 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
-    private final EntityManager entityManager;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional
     public BookingDto createBooking(BookingDto bookingDto, Long userId) {
         checkUserExist(userId);
         bookingDto.setStatus(BookingStatus.WAITING);
@@ -64,9 +62,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional
     public BookingDto considerBooking(Boolean approved, Long bookingId, Long userId) {
-        BookingStatus status = approved ? BookingStatus.APPROVED : BookingStatus.REJECTED;
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
                 new ObjectNotExistException("Аренды с id: " + bookingId + " не найдено."));
         if (!booking.getItem().getOwner().getId().equals(userId)) {
@@ -75,13 +72,14 @@ public class BookingServiceImpl implements BookingService {
         if (!booking.getStatus().equals(BookingStatus.WAITING)) {
             throw new ObjectValidationException("Статус уже был изменён");
         }
-        bookingRepository.considerBooking(status.toString(), bookingId, userId);
-        entityManager.refresh(booking);
+        BookingStatus status = approved ? BookingStatus.APPROVED : BookingStatus.REJECTED;
+        booking.setStatus(status);
+        bookingRepository.saveAndFlush(booking);
         return BookingMapper.bookingToDto(booking);
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(readOnly = true)
     public BookingDto getBooking(Long bookingId, Long userId) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(
                 () -> new ObjectNotExistException("Аренды с id: " + bookingId + " не найдено."));
@@ -92,26 +90,22 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(readOnly = true)
     public List<BookingDto> getUserBookings(String state, Long userId) {
         checkUserExist(userId);
-        try {
-            BookingState.valueOf(state);
-        } catch (IllegalArgumentException e) {
-            throw new ObjectValidationException("Unknown state: UNSUPPORTED_STATUS");
+        if (Stream.of(BookingState.values()).noneMatch(s -> s.name().equals(state))) {
+            throw new ObjectValidationException("Unknown state: " + state);
         }
         return bookingRepository.getUserBookings(state, userId, LocalDateTime.now())
                 .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(readOnly = true)
     public List<BookingDto> getUserItemBookings(String state, Long userId) {
         checkUserExist(userId);
-        try {
-            BookingState.valueOf(state);
-        } catch (IllegalArgumentException e) {
-            throw new ObjectValidationException("Unknown state: UNSUPPORTED_STATUS");
+        if (Stream.of(BookingState.values()).noneMatch(s -> s.name().equals(state))) {
+            throw new ObjectValidationException("Unknown state: " + state);
         }
         return bookingRepository.getUserItemBookings(state, userId, LocalDateTime.now())
                 .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
