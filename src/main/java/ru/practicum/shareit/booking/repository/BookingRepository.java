@@ -51,19 +51,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> getUserItemBookings(@Param("state") String state, @Param("userId") Long userId,
                                       @Param("currentTimestamp") LocalDateTime currentTimestamp);
 
-    @Query(value = "(SELECT b.booking_id as id, b.booker_id as booker, b.start_time as startofbooking, " +
-            "b.end_time as endofbooking, b.item_id as item FROM bookings b " +
-            "WHERE b.item_id IN (SELECT item_id FROM items i WHERE i.item_id = :itemId) " +
-            "AND :currentTimestamp >= b.start_time AND b.booking_status = 'APPROVED' " +
-            "ORDER BY b.end_time DESC LIMIT 1)" +
-            "UNION ALL " +
-            "(SELECT b.booking_id as id, b.booker_id as booker, b.start_time as startofbooking, " +
-            "b.end_time as endofbooking, b.item_id as item FROM bookings b " +
-            "WHERE b.item_id IN (SELECT item_id FROM items i WHERE i.item_id = :itemId) " +
-            "AND :currentTimestamp <= b.start_time AND b.booking_status = 'APPROVED' " +
-            "ORDER BY b.start_time LIMIT 1)", nativeQuery = true)
+    @Query(value = "SELECT b.booking_id AS id, b.booker_id AS booker, b.start_time AS startofbooking," +
+            "b.end_time AS endofbooking, b.item_id AS item " +
+            "FROM bookings b " +
+            "WHERE b.item_id IN (:itemId) " +
+            "AND b.booking_status = 'APPROVED' " +
+            "AND ((b.start_time = (SELECT MAX(start_time) FROM bookings WHERE item_id IN (:itemId) " +
+            "AND :currentTimestamp >= start_time AND booking_status = 'APPROVED' AND b.item_id = item_id)) " +
+            "OR " +
+            "(b.start_time = (SELECT MIN(start_time) FROM bookings WHERE item_id IN (:itemId) " +
+            "AND :currentTimestamp <= start_time AND booking_status = 'APPROVED' AND b.item_id = item_id)))",
+            nativeQuery = true)
     @Transactional(readOnly = true)
-    List<BookingShort> getNextAndLastItemBooking(@Param("itemId") Long itemId,
+    List<BookingShort> getNextAndLastItemBooking(@Param("itemId") List<Long> itemId,
                                                  @Param("currentTimestamp") LocalDateTime currentTimestamp);
 
     @Transactional(readOnly = true)

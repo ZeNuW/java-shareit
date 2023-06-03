@@ -59,7 +59,8 @@ public class ItemServiceImpl implements ItemService {
                 () -> new ObjectNotExistException("Предмет с id: " + itemId + " не существует"));
         ItemDto itemDto = ItemMapper.itemToDto(item);
         if (item.getOwner().getId() == userId) {
-            List<BookingShort> bookings = bookingRepository.getNextAndLastItemBooking(itemId, now);
+            List<BookingShort> bookings =
+                    bookingRepository.getNextAndLastItemBooking(List.of(itemId), now);
             for (BookingShort booking : bookings) {
                 if (booking.getStartOfBooking().isBefore(now)) {
                     itemDto.setLastBooking(booking);
@@ -74,26 +75,19 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public List<ItemDto> getUserItems(long userId) {
-        /*
-        не получилось у меня избежать цикличных запросов в БД, все попытки сделать запрос всех аренд по времени
-         в 1 sql запросе были неудачными
-         */
         LocalDateTime now = LocalDateTime.now();
-        return itemRepository.findAllByOwner_Id(userId).stream()
-                .sorted(Comparator.comparingLong(Item::getId))
-                .map(ItemMapper::itemToDto)
-                .peek(itemDto -> {
-                    List<BookingShort> bookings =
-                            bookingRepository.getNextAndLastItemBooking(itemDto.getId(), now);
-                    for (BookingShort booking : bookings) {
-                        if (booking.getStartOfBooking().isBefore(now)) {
-                            itemDto.setLastBooking(booking);
-                        } else {
-                            itemDto.setNextBooking(booking);
-                        }
-                    }
-                })
-                .collect(Collectors.toList());
+        Map<Long, ItemDto> itemsDto = itemRepository.findAllByOwner_Id(userId).stream()
+                .collect(Collectors.toMap(Item::getId, ItemMapper::itemToDto));
+        List<Long> itemIds = new ArrayList<>(itemsDto.keySet());
+        List<BookingShort> bookings = bookingRepository.getNextAndLastItemBooking(itemIds, now);
+        for (BookingShort bookingShort : bookings) {
+            if (bookingShort.getStartOfBooking().isBefore(now)) {
+                itemsDto.get(bookingShort.getItem()).setLastBooking(bookingShort);
+            } else {
+                itemsDto.get(bookingShort.getItem()).setNextBooking(bookingShort);
+            }
+        }
+        return new ArrayList<>(itemsDto.values());
     }
 
     @Override
