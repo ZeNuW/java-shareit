@@ -2,9 +2,11 @@ package ru.practicum.shareit.user.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.ObjectNotExistException;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.storage.UserStorage;
+import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,31 +15,37 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    private final UserStorage userStorage;
+    private final UserRepository userRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public UserDto getUser(long userId) {
-        return UserMapper.userToDto(userStorage.getUser(userId));
+        return UserMapper.userToDto(userRepository.findById(userId).orElseThrow(
+                () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден.")));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserDto> findAll() {
-        return userStorage.findAll().stream().map(UserMapper::userToDto).collect(Collectors.toList());
+        return userRepository.findAll().stream().map(UserMapper::userToDto).collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
     public UserDto add(UserDto userDto) {
-        return UserMapper.userToDto(userStorage.add(UserMapper.userFromDto(userDto)));
+        return UserMapper.userToDto(userRepository.save(UserMapper.userFromDto(userDto)));
     }
 
     @Override
+    @Transactional
     public UserDto update(UserDto userDto, long userId) {
-        userDto.setId(userId);
-        return UserMapper.userToDto(userStorage.update(UserMapper.userFromDto(userDto)));
+        userRepository.updateUser(userId, userDto.getName(), userDto.getEmail());
+        return UserMapper.userToDto(userRepository.getReferenceById(userId));
     }
 
     @Override
+    @Transactional
     public void delete(long userId) {
-        userStorage.delete(userId);
+        userRepository.deleteById(userId);
     }
 }
