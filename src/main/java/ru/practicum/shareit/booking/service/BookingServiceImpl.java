@@ -1,6 +1,7 @@
 package ru.practicum.shareit.booking.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.BookingMapper;
@@ -91,24 +92,29 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingDto> getUserBookings(String state, Long userId) {
-        checkUserExist(userId);
-        if (Stream.of(BookingState.values()).noneMatch(s -> s.name().equals(state))) {
-            throw new ObjectValidationException("Unknown state: " + state);
-        }
-        return bookingRepository.getUserBookings(state, userId, LocalDateTime.now())
+    public List<BookingDto> getUserBookings(String state, Long userId, int from, int size) {
+        PageRequest page = validateAndCreatePageRequest(state, userId, from, size);
+        return bookingRepository.getUserBookings(state, userId, LocalDateTime.now(), page)
                 .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingDto> getUserItemBookings(String state, Long userId) {
+    public List<BookingDto> getUserItemBookings(String state, Long userId, int from, int size) {
+        PageRequest page = validateAndCreatePageRequest(state, userId, from, size);
+        return bookingRepository.getUserItemBookings(state, userId, LocalDateTime.now(), page)
+                .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
+    }
+
+    private PageRequest validateAndCreatePageRequest(String state, Long userId, int from, int size) {
         checkUserExist(userId);
         if (Stream.of(BookingState.values()).noneMatch(s -> s.name().equals(state))) {
             throw new ObjectValidationException("Unknown state: " + state);
         }
-        return bookingRepository.getUserItemBookings(state, userId, LocalDateTime.now())
-                .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
+        if (from < 0 || size <= 0) {
+            throw new ObjectValidationException("Значение size или from не могут быть отрицательными");
+        }
+        return PageRequest.of(from / size, size);
     }
 
     private void checkUserExist(Long userId) {

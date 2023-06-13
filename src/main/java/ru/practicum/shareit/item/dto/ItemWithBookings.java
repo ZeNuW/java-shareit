@@ -20,6 +20,7 @@ public class ItemWithBookings {
     private String name;
     @NotNull
     private Boolean available;
+    private Long requestId;
     private BookingShort lastBooking;
     private BookingShort nextBooking;
     private List<CommentDto> comments;

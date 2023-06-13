@@ -1,5 +1,6 @@
 package ru.practicum.shareit.booking.repository;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,7 +25,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "    (:state = 'REJECTED' AND booking_status = 'REJECTED') OR " +
             "    :state = 'ALL') AND booker_id = :userId ORDER BY start_time DESC", nativeQuery = true)
     List<Booking> getUserBookings(@Param("state") String state, @Param("userId") Long userId,
-                                  @Param("currentTimestamp") LocalDateTime currentTimestamp);
+                                  @Param("currentTimestamp") LocalDateTime currentTimestamp, Pageable page);
 
     @Query(value = "SELECT b FROM Booking b WHERE " +
             "    ((:state = 'CURRENT' AND b.endOfBooking >= :currentTimestamp " +
@@ -36,7 +37,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "    (:state = 'REJECTED' AND b.status = 'REJECTED') OR " +
             "    :state = 'ALL') AND b.item.owner.id = :userId ORDER BY b.startOfBooking DESC")
     List<Booking> getUserItemBookings(@Param("state") String state, @Param("userId") Long userId,
-                                      @Param("currentTimestamp") LocalDateTime currentTimestamp);
+                                      @Param("currentTimestamp") LocalDateTime currentTimestamp, Pageable page);
 
     @Query(value = "SELECT b.booking_id AS id, b.booker_id AS booker, b.start_time AS startofbooking," +
             "b.end_time AS endofbooking, b.item_id AS item " +
