@@ -10,6 +10,7 @@ import javax.validation.constraints.NotBlank;
 @Getter
 @Setter
 @ToString
+@EqualsAndHashCode
 public class UserDto {
     private Long id;
     @Email(message = "Передан невалидный email")
@@ -17,4 +18,6 @@ public class UserDto {
     private String email;
     @NotBlank
     private String name;
+
+
 }
