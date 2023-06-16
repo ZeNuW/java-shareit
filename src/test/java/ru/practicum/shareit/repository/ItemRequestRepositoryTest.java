@@ -89,10 +89,8 @@ public class ItemRequestRepositoryTest {
         ItemRequest ownerRequest = itemRequestRepository.save(ItemRequestMapper.itemRequestDtoToItemRequest(itemRequest, owner));
         ItemRequestDto itemRequest2 = new ItemRequestDto(null, "предмет2", LocalDateTime.now(), null);
         ItemRequest userRequest = itemRequestRepository.save(ItemRequestMapper.itemRequestDtoToItemRequest(itemRequest2, user));
-
         List<ItemRequest> ownerReqList = itemRequestRepository.findAllByCreator_IdNot(owner.getId(), Pageable.ofSize(10)).stream().collect(Collectors.toList());
         List<ItemRequest> userReqList = itemRequestRepository.findAllByCreator_IdNot(user.getId(), Pageable.ofSize(10)).stream().collect(Collectors.toList());
-
         assertThat(ownerReqList.get(0)).isEqualTo(userRequest);
         assertThat(userReqList.get(0)).isEqualTo(ownerRequest);
     }

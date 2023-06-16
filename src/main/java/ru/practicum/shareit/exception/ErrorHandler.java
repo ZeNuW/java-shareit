@@ -36,6 +36,6 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleThrowable(final Throwable e) {
         log.warn(e.getMessage());
-        return new ErrorResponse(e.getMessage() + " " + e);
+        return new ErrorResponse(e.getMessage());
     }
 }

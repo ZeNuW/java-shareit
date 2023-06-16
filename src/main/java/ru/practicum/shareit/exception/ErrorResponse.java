@@ -1,7 +1,9 @@
 package ru.practicum.shareit.exception;
 
-public class ErrorResponse {
+import lombok.EqualsAndHashCode;
 
+@EqualsAndHashCode
+public class ErrorResponse {
     private final String error;
 
     public ErrorResponse(String error) {
