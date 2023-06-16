@@ -117,10 +117,10 @@ public class ItemServiceImpl implements ItemService {
         if (bookings.isEmpty()) {
             throw new ObjectValidationException("Вы не можете оставить комментарий.");
         }
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
-        Item item = itemRepository.findById(itemId).orElseThrow(
-                () -> new ObjectNotExistException("Предмет с id: " + itemId + " не существует"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ObjectNotExistException("Предмет с id: " + itemId + " не существует"));
         Comment comment = CommentMapper.commentFromDto(commentDto, user, item);
         comment.setCreated(LocalDateTime.now());
         return CommentMapper.commentToDto(commentRepository.save(comment));

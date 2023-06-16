@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@ToString
 @Entity
 @Table(name = "comments")
 @AllArgsConstructor

@@ -9,6 +9,7 @@ import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.exception.ObjectNotExistException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemShort;
 import ru.practicum.shareit.item.mapper.ItemMapper;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 public class BookingServiceIntegrationTest {
@@ -41,6 +43,10 @@ public class BookingServiceIntegrationTest {
         Item item = createItem(user);
         User booker = createUser();
         BookingDto bookingDto = createBookingDto(item);
+        //userId = ownerId
+        assertThrows(ObjectNotExistException.class,
+                () -> bookingService.createBooking(bookingDto, user.getId()));
+        //ok
         BookingDto createdBooking = bookingService.createBooking(bookingDto, booker.getId());
         assertThat(createdBooking).isNotNull();
         assertThat(createdBooking.getId()).isNotNull();

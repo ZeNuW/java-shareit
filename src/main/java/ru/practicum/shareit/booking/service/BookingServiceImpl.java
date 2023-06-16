@@ -35,8 +35,8 @@ public class BookingServiceImpl implements BookingService {
         checkUserExist(userId);
         bookingDto.setStatus(BookingStatus.WAITING);
         bookingDto.setBooker(userId);
-        Item item = itemRepository.findById(bookingDto.getItem().getId()).orElseThrow(() ->
-                new ObjectNotExistException("Предмет с id: " + bookingDto.getItem().getId() + " не найден."));
+        Item item = itemRepository.findById(bookingDto.getItem().getId())
+                        .orElseThrow(() -> new ObjectNotExistException("Предмет с id: " + bookingDto.getItem().getId() + " не найден."));
         if (item.getOwner().getId().equals(userId)) {
             throw new ObjectNotExistException("Нельзя арендовать свою же вещь!");
         }
