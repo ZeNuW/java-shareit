@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingShort;
@@ -23,10 +24,12 @@ import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
@@ -37,27 +40,25 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public ItemDto addItem(long userId, ItemDto itemDto) {
-        User owner = userRepository.findById(userId).orElseThrow(
-                () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
+        User owner = checkUserExist(userId);
         return ItemMapper.itemToDto(itemRepository.save(ItemMapper.itemFromDto(itemDto, owner)));
     }
 
     @Override
     @Transactional
     public ItemDto updateItem(long userId, ItemDto itemDto, long itemId) {
-        userRepository.findById(userId).orElseThrow(
-                () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
+        checkUserExist(userId);
         itemRepository.updateItem(itemId, itemDto.getDescription(), itemDto.getAvailable(), itemDto.getName());
         return ItemMapper.itemToDto(itemRepository.getReferenceById(itemId));
     }
 
     @Override
-    @Transactional(readOnly = true)
     public ItemWithBookings getItem(long itemId, long userId) {
         LocalDateTime now = LocalDateTime.now();
-        Item item = itemRepository.findById(itemId).orElseThrow(
-                () -> new ObjectNotExistException("Предмет с id: " + itemId + " не существует"));
-        ItemWithBookings itemWithBookings = ItemMapper.itemToItemWithBookings(item);
+        Item item = checkItemExist(itemId);
+        List<CommentDto> commentsDto = commentRepository.findAllByItem_IdIn(List.of(item.getId())).stream()
+                .map(CommentMapper::commentToDto).collect(Collectors.toList());
+        ItemWithBookings itemWithBookings = ItemMapper.itemToItemWithBookings(item, commentsDto);
         if (item.getOwner().getId() == userId) {
             List<BookingShort> bookings =
                     bookingRepository.getNextAndLastItemBooking(List.of(itemId), now);
@@ -73,11 +74,18 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<ItemWithBookings> getUserItems(long userId) {
+    public List<ItemWithBookings> getUserItems(long userId, int from, int size) {
         LocalDateTime now = LocalDateTime.now();
-        Map<Long, ItemWithBookings> itemsWithBookings = itemRepository.findAllByOwner_Id(userId).stream()
-                .collect(Collectors.toMap(Item::getId, ItemMapper::itemToItemWithBookings));
+        if (from < 0 || size <= 0) {
+            throw new ObjectValidationException("Значение size или from не могут быть отрицательными");
+        }
+        PageRequest page = PageRequest.of(from / size, size);
+        List<Item> items = itemRepository.findAllByOwner_Id(userId, page);
+        List<Long> itemsId = items.stream().map(Item::getId).collect(Collectors.toList());
+        List<Comment> comments = commentRepository.findAllByItem_IdIn(itemsId);
+        List<ItemWithBookings> itemsWithBookingsList = ItemMapper.itemToItemWithBookings(items, comments);
+        Map<Long, ItemWithBookings> itemsWithBookings = itemsWithBookingsList.stream()
+                .collect(Collectors.toMap(ItemWithBookings::getId, Function.identity()));
         List<Long> itemIds = new ArrayList<>(itemsWithBookings.keySet());
         List<BookingShort> bookings = bookingRepository.getNextAndLastItemBooking(itemIds, now);
         for (BookingShort bookingShort : bookings) {
@@ -91,12 +99,15 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<ItemDto> searchItems(String text) {
+    public List<ItemDto> searchItems(String text, int from, int size) {
         if (text.isBlank()) {
             return new ArrayList<>();
         }
-        return itemRepository.findAllByDescriptionContainingIgnoreCaseAndAvailableIsTrue(text).stream()
+        if (from < 0 || size <= 0) {
+            throw new ObjectValidationException("Значение size или from не могут быть отрицательными");
+        }
+        PageRequest page = PageRequest.of(from / size, size);
+        return itemRepository.findAllByDescriptionContainingIgnoreCaseAndAvailableIsTrue(text, page).stream()
                 .map(ItemMapper::itemToDto).collect(Collectors.toList());
     }
 
@@ -108,12 +119,20 @@ public class ItemServiceImpl implements ItemService {
         if (bookings.isEmpty()) {
             throw new ObjectValidationException("Вы не можете оставить комментарий.");
         }
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
-        Item item = itemRepository.findById(itemId).orElseThrow(
-                () -> new ObjectNotExistException("Предмет с id: " + itemId + " не существует"));
+        User user = checkUserExist(userId);
+        Item item = checkItemExist(itemId);
         Comment comment = CommentMapper.commentFromDto(commentDto, user, item);
         comment.setCreated(LocalDateTime.now());
         return CommentMapper.commentToDto(commentRepository.save(comment));
+    }
+
+    private User checkUserExist(Long userId) {
+        return userRepository.findById(userId).orElseThrow(
+                () -> new ObjectNotExistException(String.format("Пользователь с id: %d не найден.", userId)));
+    }
+
+    private Item checkItemExist(Long itemId) {
+        return itemRepository.findById(itemId)
+                .orElseThrow(() -> new ObjectNotExistException(String.format("Предмет с id: %d не существует", itemId)));
     }
 }

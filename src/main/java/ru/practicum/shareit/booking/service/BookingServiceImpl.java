@@ -1,9 +1,10 @@
 package ru.practicum.shareit.booking.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.shareit.booking.BookingMapper;
+import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingState;
@@ -22,6 +23,7 @@ import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
@@ -34,13 +36,13 @@ public class BookingServiceImpl implements BookingService {
         checkUserExist(userId);
         bookingDto.setStatus(BookingStatus.WAITING);
         bookingDto.setBooker(userId);
-        Item item = itemRepository.findById(bookingDto.getItem().getId()).orElseThrow(() ->
-                new ObjectNotExistException("Предмет с id: " + bookingDto.getItem().getId() + " не найден."));
+        Item item = itemRepository.findById(bookingDto.getItem().getId())
+                .orElseThrow(() -> new ObjectNotExistException(String.format("Предмет с id: %d не существует", bookingDto.getItem().getId())));
         if (item.getOwner().getId().equals(userId)) {
             throw new ObjectNotExistException("Нельзя арендовать свою же вещь!");
         }
         if (!item.getAvailable()) {
-            throw new ObjectValidationException("Предмет " + item.getName() + " недоступен для брони.");
+            throw new ObjectValidationException(String.format("Предмет %s недоступен для брони.", item.getName()));
         }
         LocalDateTime nowTime = LocalDateTime.now();
         LocalDateTime startOfBooking = bookingDto.getStartOfBooking();
@@ -65,7 +67,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingDto considerBooking(Boolean approved, Long bookingId, Long userId) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
-                new ObjectNotExistException("Аренды с id: " + bookingId + " не найдено."));
+                new ObjectNotExistException(String.format("Аренды с id: %d не найдено.", bookingId)));
         if (!booking.getItem().getOwner().getId().equals(userId)) {
             throw new ObjectNotExistException("Вы не являетесь владельцем предмета и не можете сменить статус");
         }
@@ -79,10 +81,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public BookingDto getBooking(Long bookingId, Long userId) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(
-                () -> new ObjectNotExistException("Аренды с id: " + bookingId + " не найдено."));
+                () -> new ObjectNotExistException(String.format("Аренды с id: %d не найдено.", bookingId)));
         if (!(booking.getBooker().equals(userId) || booking.getItem().getOwner().getId().equals(userId))) {
             throw new ObjectNotExistException(userId + " не является владельцем предмета или создателем брони");
         }
@@ -90,29 +91,32 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<BookingDto> getUserBookings(String state, Long userId) {
-        checkUserExist(userId);
-        if (Stream.of(BookingState.values()).noneMatch(s -> s.name().equals(state))) {
-            throw new ObjectValidationException("Unknown state: " + state);
-        }
-        return bookingRepository.getUserBookings(state, userId, LocalDateTime.now())
+    public List<BookingDto> getUserBookings(String state, Long userId, int from, int size) {
+        PageRequest page = validateAndCreatePageRequest(state, userId, from, size);
+        return bookingRepository.getUserBookings(state, userId, LocalDateTime.now(), page)
                 .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<BookingDto> getUserItemBookings(String state, Long userId) {
+    public List<BookingDto> getUserItemBookings(String state, Long userId, int from, int size) {
+        PageRequest page = validateAndCreatePageRequest(state, userId, from, size);
+        return bookingRepository.getUserItemBookings(state, userId, LocalDateTime.now(), page)
+                .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
+    }
+
+    private PageRequest validateAndCreatePageRequest(String state, Long userId, int from, int size) {
         checkUserExist(userId);
         if (Stream.of(BookingState.values()).noneMatch(s -> s.name().equals(state))) {
             throw new ObjectValidationException("Unknown state: " + state);
         }
-        return bookingRepository.getUserItemBookings(state, userId, LocalDateTime.now())
-                .stream().map(BookingMapper::bookingToDto).collect(Collectors.toList());
+        if (from < 0 || size <= 0) {
+            throw new ObjectValidationException("Значение size или from не могут быть отрицательными");
+        }
+        return PageRequest.of(from / size, size);
     }
 
     private void checkUserExist(Long userId) {
         userRepository.findById(userId).orElseThrow(
-                () -> new ObjectNotExistException("Пользователь с id: " + userId + " не найден"));
+                () -> new ObjectNotExistException(String.format("Пользователь с id: %d не найден.", userId)));
     }
 }

@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @Builder
 @Getter
 @Setter
-@ToString
 public class BookingDto {
     private Long id;
     private BookingStatus status;
