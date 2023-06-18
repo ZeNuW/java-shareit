@@ -2,8 +2,10 @@ package ru.practicum.shareit.item.mapper;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemWithBookings;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
@@ -49,12 +51,11 @@ public final class ItemMapper {
                 .description(itemDto.getDescription())
                 .available(itemDto.getAvailable())
                 .owner(owner)
-                .comments(new ArrayList<>())
                 .itemRequest(itemRequest)
                 .build();
     }
 
-    public static ItemWithBookings itemToItemWithBookings(Item item) {
+    public static ItemWithBookings itemToItemWithBookings(Item item, List<CommentDto> commentsDto) {
         Long requestId = null;
         if (item.getItemRequest() != null) {
             requestId = item.getItemRequest().getId();
@@ -64,10 +65,17 @@ public final class ItemMapper {
                 .name(item.getName())
                 .description(item.getDescription())
                 .available(item.getAvailable())
-                .comments(item.getComments().stream()
-                        .map(CommentMapper::commentToDto)
-                        .collect(Collectors.toList()))
+                .comments(commentsDto)
                 .requestId(requestId)
                 .build();
+    }
+
+    public static List<ItemWithBookings> itemToItemWithBookings(Iterable<Item> items, List<Comment> comments) {
+        List<ItemWithBookings> dtos = new ArrayList<>();
+        for (Item item : items) {
+            List<Comment> itemComments = comments.stream().filter(comment -> comment.getItem().getId().equals(item.getId())).collect(Collectors.toList());
+            dtos.add(itemToItemWithBookings(item, CommentMapper.commentToDto(itemComments)));
+        }
+        return dtos;
     }
 }

@@ -2,6 +2,7 @@ package ru.practicum.shareit.mapper;
 
 import org.jeasy.random.EasyRandom;
 import org.junit.jupiter.api.Test;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemWithBookings;
 import ru.practicum.shareit.item.mapper.ItemMapper;
@@ -65,7 +66,8 @@ public class ItemMapperTest {
     @Test
     public void itemToItemWithBookingsTest() {
         Item item = generator.nextObject(Item.class);
-        ItemWithBookings itemDto = ItemMapper.itemToItemWithBookings(item);
+        CommentDto comment = generator.nextObject(CommentDto.class);
+        ItemWithBookings itemDto = ItemMapper.itemToItemWithBookings(item, List.of(comment));
         assertThat(itemDto.getId()).isEqualTo(item.getId());
         assertThat(itemDto.getName()).isEqualTo(item.getName());
         assertThat(itemDto.getDescription()).isEqualTo(item.getDescription());

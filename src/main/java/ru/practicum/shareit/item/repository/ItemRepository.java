@@ -15,6 +15,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     List<Item> findAllByDescriptionContainingIgnoreCaseAndAvailableIsTrue(String text, Pageable page);
 
+    List<Item> findAllByItemRequest_IdIn(List<Long> ids);
+
     @Modifying
     @Query("UPDATE Item i SET i.description = COALESCE(:description, i.description), " +
             "i.available = COALESCE(:available, i.available), " +

@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import ru.practicum.shareit.exception.ObjectNotExistException;
 import ru.practicum.shareit.exception.ObjectValidationException;
+import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.mapper.ItemRequestMapper;
 import ru.practicum.shareit.request.model.ItemRequest;
@@ -33,6 +34,8 @@ public class ItemRequestServiceUnitTest {
     private ItemRequestRepository itemRequestRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private ItemRepository itemRepository;
     @InjectMocks
     private ItemRequestServiceImpl itemRequestService;
 

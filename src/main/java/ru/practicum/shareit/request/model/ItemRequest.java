@@ -1,12 +1,10 @@
 package ru.practicum.shareit.request.model;
 
 import lombok.*;
-import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Setter
@@ -26,6 +24,4 @@ public class ItemRequest {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id")
     private User creator;
-    @OneToMany(mappedBy = "itemRequest", fetch = FetchType.LAZY)
-    private List<Item> items;
 }

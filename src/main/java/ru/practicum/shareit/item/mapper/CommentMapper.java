@@ -5,6 +5,9 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class CommentMapper {
     public static CommentDto commentToDto(Comment comment) {
         return CommentDto.builder()
@@ -23,5 +26,13 @@ public class CommentMapper {
                 .item(item)
                 .text(commentDto.getText())
                 .build();
+    }
+
+    public static List<CommentDto> commentToDto(Iterable<Comment> comments) {
+        List<CommentDto> commentsDto = new ArrayList<>();
+        for (Comment comment : comments) {
+            commentsDto.add(commentToDto(comment));
+        }
+        return commentsDto;
     }
 }

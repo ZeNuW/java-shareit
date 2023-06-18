@@ -2,6 +2,7 @@ package ru.practicum.shareit.mapper;
 
 import org.jeasy.random.EasyRandom;
 import org.junit.jupiter.api.Test;
+import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.mapper.ItemRequestMapper;
 import ru.practicum.shareit.request.model.ItemRequest;
@@ -28,7 +29,9 @@ public class ItemRequestMapperTest {
     @Test
     public void itemRequestToItemRequestDtoTest() {
         ItemRequest itemRequest = generator.nextObject(ItemRequest.class);
-        ItemRequestDto itemRequestDto = ItemRequestMapper.itemRequestToItemRequestDto(itemRequest);
+        ItemDto item = generator.nextObject(ItemDto.class);
+        item.setRequestId(itemRequest.getId());
+        ItemRequestDto itemRequestDto = ItemRequestMapper.itemRequestToItemRequestDto(itemRequest, List.of(item));
         assertThat(itemRequestDto.getId()).isEqualTo(itemRequest.getId());
         assertThat(itemRequestDto.getDescription()).isEqualTo(itemRequest.getDescription());
         assertThat(itemRequestDto.getCreated()).isEqualTo(itemRequest.getCreated());
@@ -39,7 +42,9 @@ public class ItemRequestMapperTest {
         ItemRequest itemRequest = generator.nextObject(ItemRequest.class);
         ItemRequest itemRequest2 = generator.nextObject(ItemRequest.class);
         ItemRequest itemRequest3 = generator.nextObject(ItemRequest.class);
-        List<ItemRequestDto> itemRequestDto = ItemRequestMapper.itemRequestToItemRequestDto(List.of(itemRequest,itemRequest2, itemRequest3));
+        ItemDto item = generator.nextObject(ItemDto.class);
+        item.setRequestId(itemRequest.getId());
+        List<ItemRequestDto> itemRequestDto = ItemRequestMapper.itemRequestToItemRequestDto(List.of(itemRequest,itemRequest2, itemRequest3), List.of(item));
         assertThat(itemRequest.getId()).isEqualTo(itemRequestDto.get(0).getId());
         assertThat(itemRequest.getDescription()).isEqualTo(itemRequestDto.get(0).getDescription());
         assertThat(itemRequest.getCreated()).isEqualTo(itemRequestDto.get(0).getCreated());

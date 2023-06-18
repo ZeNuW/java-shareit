@@ -5,7 +5,6 @@ import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
-import java.util.List;
 
 @Getter
 @Setter
@@ -25,14 +24,8 @@ public class Item {
     private Boolean available;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
-    @ToString.Exclude
     private User owner;
-    @ToString.Exclude
-    @OneToMany(mappedBy = "item", fetch = FetchType.LAZY)
-    private List<Comment> comments;
-    //
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "request_id")
-    @ToString.Exclude
     private ItemRequest itemRequest;
 }
