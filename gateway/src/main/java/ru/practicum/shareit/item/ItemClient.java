@@ -8,7 +8,6 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.shareit.client.BaseClient;
-import ru.practicum.shareit.exception.ObjectValidationException;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 
@@ -43,7 +42,6 @@ public class ItemClient extends BaseClient {
     }
 
     public ResponseEntity<Object> getUserItems(long userId, int from, int size) {
-        checkParameters(from, size);
         Map<String, Object> parameters = Map.of(
                 "from", from,
                 "size", size
@@ -55,7 +53,6 @@ public class ItemClient extends BaseClient {
         if (text.isBlank()) {
             return ResponseEntity.ok(List.of());
         }
-        checkParameters(from, size);
         Map<String, Object> parameters = Map.of(
                 "from", from,
                 "size", size,
@@ -66,14 +63,5 @@ public class ItemClient extends BaseClient {
 
     public ResponseEntity<Object> addComment(Long userId, Long itemId, CommentDto commentDto) {
         return post("/" + itemId + "/comment", userId, commentDto);
-    }
-
-    private void checkParameters(int from, int size) {
-        if (size <= 0) {
-            throw new ObjectValidationException("size не может быть отрицательным или равным 0");
-        }
-        if (from < 0) {
-            throw new ObjectValidationException("from не может быть отрицательным");
-        }
     }
 }

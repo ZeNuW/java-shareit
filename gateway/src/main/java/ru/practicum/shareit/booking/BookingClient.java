@@ -10,9 +10,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingState;
 import ru.practicum.shareit.client.BaseClient;
-import ru.practicum.shareit.exception.ObjectValidationException;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 
 @Service
@@ -30,14 +28,6 @@ public class BookingClient extends BaseClient {
     }
 
     public ResponseEntity<Object> createBooking(BookingDto bookingDto, Long userId) {
-        LocalDateTime startOfBooking = bookingDto.getStartOfBooking();
-        LocalDateTime endOfBooking = bookingDto.getEndOfBooking();
-        if (endOfBooking.isBefore(startOfBooking)) {
-            throw new ObjectValidationException("Время окончания брони установлено раньше начала брони.");
-        }
-        if (startOfBooking.isEqual(endOfBooking)) {
-            throw new ObjectValidationException("Время начала и конца брони установлено в одно время.");
-        }
         return post("", userId, bookingDto);
     }
 
@@ -50,7 +40,6 @@ public class BookingClient extends BaseClient {
     }
 
     public ResponseEntity<Object> getUserBookings(BookingState state, Long userId, int from, int size) {
-        checkParameters(from, size);
         Map<String, Object> parameters = Map.of(
                 "state", state.name(),
                 "from", from,
@@ -60,21 +49,11 @@ public class BookingClient extends BaseClient {
     }
 
     public ResponseEntity<Object> getUserItemBookings(BookingState state, Long userId, int from, int size) {
-        checkParameters(from, size);
         Map<String, Object> parameters = Map.of(
                 "state", state.name(),
                 "from", from,
                 "size", size
         );
         return get("/owner/?state={state}&from={from}&size={size}", userId, parameters);
-    }
-
-    private void checkParameters(int from, int size) {
-        if (size <= 0) {
-            throw new ObjectValidationException("size не может быть отрицательным или равным 0");
-        }
-        if (from < 0) {
-            throw new ObjectValidationException("from не может быть отрицательным");
-        }
     }
 }

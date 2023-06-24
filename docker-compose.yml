@@ -23,7 +23,7 @@ services:
       - POSTGRES_PASSWORD=password
 
   db:
-    image: postgres:13.7-alpine
+    image: postgres:15.3-alpine
     volumes:
       - /var/lib/postgresql/data/
     container_name: shareit_db
