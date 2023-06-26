@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import ru.practicum.shareit.valid.StartBeforeOrNotEqualEndDateValid;
 
-import javax.validation.constraints.Future;
 import javax.validation.constraints.FutureOrPresent;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -16,12 +15,10 @@ import java.time.LocalDateTime;
 public class BookingDto {
     private Long id;
     @JsonProperty(value = "start")
-    @NotNull
     @FutureOrPresent
     private LocalDateTime startOfBooking;
     @JsonProperty(value = "end")
-    @NotNull
-    @Future
     private LocalDateTime endOfBooking;
+    @NotNull
     private Long itemId;
 }
